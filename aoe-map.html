@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<meta charset='utf-8'>
+<style>
+    #container { border: 1px solid }
+    #country { fill: #aca }
+</style>
+<body>
+    <script src='http://d3js.org/d3.v3.min.js'></script>
+    <script src='http://d3js.org/topojson.v1.min.js'></script>
+    <script>
+
+        function calculateRatio(bounds, height, unit) {
+            var earthRadius = 6371,
+                x = bounds[0][0],
+                y0 = bounds[0][1],
+                y1 = bounds[1][1];
+            return height*unit/(d3.geo.distance([x, y0],[x, y1])*earthRadius);
+        }
+
+        function adjustScale(projection, bounds, width, height) {
+            var leftBottom = projection(bounds[0]),
+                rightTop = projection(bounds[1]),
+
+                leftLng = leftBottom[0],
+                bottomLat = leftBottom[1],
+                rightLng = rightTop[0],
+                topLat = rightTop[1],
+
+                s = 1 / Math.max((rightLng - leftLng) / width, (bottomLat - topLat) / height),
+                t = [(width - s * (rightLng + leftLng)) / 2, (height - s * (topLat + bottomLat)) / 2];
+
+            projection.scale(s).translate(t);
+        }
+
+        function drawBarScale(svg, ratio) {
+            var left = 20,
+                top = 450,
+                barHeight = 15,
+                lineData = [
+                    { 'x': left, 'y': top},
+                    { 'x': left, 'y': top-barHeight},
+                    { 'x': left+ratio,  'y': top-barHeight},
+                    { 'x': left+ratio,  'y': top}
+                ],
+                lineFunction = d3.svg.line()
+                    .x(function(d) { return d.x; })
+                    .y(function(d) { return d.y; })
+                    .interpolate('linear'),
+
+                lineGraph = svg.append('path')
+                    .attr('d', lineFunction(lineData))
+                    .attr('stroke', 'black')
+                    .attr('stroke-width', 1)
+                    .attr('fill', 'none');
+
+            svg.append('text').attr('x', 21).attr('y', 430).text('500 km');
+        }
+
+        function markAoE(svg, width, height) {
+            function distance(intensity, sourceDistance, targetIntensity) {
+                return Math.sqrt(intensity*Math.pow(sourceDistance,2)/targetIntensity);
+            }
+
+            svg.append('clipPath')
+                .attr('id', 'clip')
+                .append('use').attr('xlink:href', '#country');
+
+            var intensity = 100000;
+            var sourceDistance = 1;
+
+            var boundaries = [];
+
+            boundaries.push(sourceDistance);
+            boundaries.push(distance(intensity, sourceDistance, 100));
+            boundaries.push(distance(intensity, sourceDistance, 5));
+            boundaries.push(distance(intensity, sourceDistance, 2));
+
+            var circle = svg.selectAll('circle').data(boundaries);
+            var enter = circle.enter().insert('circle');
+
+            var x = width/2;
+            var y = height/2;
+
+            var opacity = 1;
+            enter.attr('clip-path', 'url(#clip)').attr('cx', x).attr('cy', y).attr('r', function(d) {
+                return d;
+            }).style('opacity', function(d) {
+                opacity -= 0.2
+                return opacity;
+            });
+        }
+
+        d3.json('br.json', function(error, br) {
+            var width = 960,
+                height = 500;
+
+            var svg = d3.select('body').append('svg')
+                .attr('id', 'container')
+                .attr('width', width)
+                .attr('height', height);
+
+            var projection = d3.geo.mercator().scale(1).translate([0, 0]);
+            var feature = topojson.feature(br, br.objects.subunits);
+            var bounds = d3.geo.bounds(feature);
+
+            adjustScale(projection, bounds, width, height);
+            var country = svg.append('path')
+                .attr('id', 'country')
+                .datum(feature)
+                .attr('d', d3.geo.path().projection(projection));
+
+            drawBarScale(svg, calculateRatio(bounds, height, 500));
+
+            markAoE(svg, width, height);
+        });
+
+    </script>
+</body>
+
