@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset='utf-8'>
+<style>
+    table { border-collapse: collapse }
+    .day { width: 30px; height: 30px; border: 1px solid; padding: 3px; text-align: center; }
+    .today { background-color: #cdc }
+</style>
+<body>
+    <script src='http://d3js.org/d3.v3.js'></script>
+    <script src='//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.4/underscore-min.js'></script>
+
+    <script>
+        function firstWeekOffset(d) {
+            return new Date(d.getFullYear(), d.getMonth(), 1).getDay();
+        }
+        function weekOfMonth(d) {
+            return Math.floor((d.getDate() + (firstWeekOffset(d) - 1))/7);
+        };
+        function leftPad(week, offset) {
+            if (offset) {
+                week.values = new Array(7-week.values.length).concat(week.values);
+            }
+        };
+        function rightPad(week) {
+            week.values =  week.values.concat(new Array(7-week.values.length));
+        };
+        function numberOfDaysInMonth(d) {
+            return new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+        };
+        function calendarDays(d) {
+            return d3.range(0, numberOfDaysInMonth(d)).map(function(n) {
+                return new Date(d.getFullYear(), d.getMonth(), n+1);
+            });
+        };
+        function daysByWeek(allDays) {
+            return d3.nest().key(function(d) { return weekOfMonth(d); }).entries(allDays);
+        };
+        function isSameDay(d, base) {
+            return d.getDate() == base.getDate() &&
+                d.getMonth() == base.getMonth() &&
+                d.getFullYear() == base.getFullYear();
+        };
+        function getCalendarData(d) {
+            var weeks = daysByWeek(calendarDays(d));
+            leftPad(weeks[0], firstWeekOffset(d));
+            rightPad(weeks[weeks.length-1]);
+
+            return weeks;
+        };
+
+        var baseDate = new Date();
+
+        var cal = d3.select('body').append('table')
+            .selectAll('tr').data(getCalendarData(baseDate)).enter().append('tr')
+                .selectAll('td').data(function(d) { return d.values; }).enter().append('td')
+                .attr('class', 'day')
+                .filter(function(d) { return d != null; }).text(function(d) { return d.getDate() })
+                .filter(function(d) { return isSameDay(d, baseDate); }).classed('today', true)
+   </script>
+</body>
+
