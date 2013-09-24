@@ -13,9 +13,6 @@
         function firstWeekOffset(d) {
             return new Date(d.getFullYear(), d.getMonth(), 1).getDay();
         }
-        function weekOfMonth(d) {
-            return Math.floor((d.getDate() + (firstWeekOffset(d) - 1))/7);
-        };
         function leftPad(week, offset) {
             if (offset) {
                 week.values = new Array(7-week.values.length).concat(week.values);
@@ -24,16 +21,11 @@
         function rightPad(week) {
             week.values =  week.values.concat(new Array(7-week.values.length));
         };
-        function numberOfDaysInMonth(d) {
-            return new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
-        };
         function calendarDays(d) {
-            return d3.range(0, numberOfDaysInMonth(d)).map(function(n) {
-                return new Date(d.getFullYear(), d.getMonth(), n+1);
-            });
+            return d3.time.days(d3.time.month(d), new Date(d.getFullYear(), d.getMonth()+1, 1));
         };
         function daysByWeek(allDays) {
-            return d3.nest().key(function(d) { return weekOfMonth(d); }).entries(allDays);
+            return d3.nest().key(function(d) { return d3.time.weekOfYear(d); }).entries(allDays);
         };
         function isSameDay(d, base) {
             return d.getDate() == base.getDate() &&
@@ -48,7 +40,7 @@
             return weeks;
         };
 
-        var baseDate = new Date();
+        var baseDate = new Date(2014, 07);
 
         var cal = d3.select('body').append('table')
             .selectAll('tr').data(getCalendarData(baseDate)).enter().append('tr')
