@@ -10,43 +10,29 @@
     <script src='//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.4/underscore-min.js'></script>
 
     <script>
-        function firstWeekOffset(d) {
-            return new Date(d.getFullYear(), d.getMonth(), 1).getDay();
-        }
-        function leftPad(week, offset) {
-            if (offset) {
-                week.values = new Array(7-week.values.length).concat(week.values);
-            }
-        };
-        function rightPad(week) {
-            week.values =  week.values.concat(new Array(7-week.values.length));
-        };
         function calendarDays(d) {
-            return d3.time.days(d3.time.month(d), new Date(d.getFullYear(), d.getMonth()+1, 1));
+            var fromDate = new Date(d.getFullYear(), d.getMonth(), 1);
+            fromDate.setDate(fromDate.getDate() - fromDate.getDay())
+            var toDate = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+            toDate.setDate(toDate.getDate() + (7 - toDate.getDay()));
+
+            return d3.time.days(fromDate, toDate);
         };
-        function daysByWeek(allDays) {
-            return d3.nest().key(function(d) { return d3.time.weekOfYear(d); }).entries(allDays);
+        function getCalendarData(d) {
+            return d3.nest().key(function(value) { return d3.time.weekOfYear(value); }).entries(calendarDays(d));
         };
         function isSameDay(d, base) {
             return d.getDate() == base.getDate() &&
-                d.getMonth() == base.getMonth() &&
-                d.getFullYear() == base.getFullYear();
-        };
-        function getCalendarData(d) {
-            var weeks = daysByWeek(calendarDays(d));
-            leftPad(weeks[0], firstWeekOffset(d));
-            rightPad(weeks[weeks.length-1]);
-
-            return weeks;
+                   d.getMonth() == base.getMonth() &&
+                   d.getFullYear() == base.getFullYear();
         };
 
-        var baseDate = new Date(2014, 07);
-
-        var cal = d3.select('body').append('table')
+        var baseDate = new Date();
+        d3.select('body').append('table')
             .selectAll('tr').data(getCalendarData(baseDate)).enter().append('tr')
                 .selectAll('td').data(function(d) { return d.values; }).enter().append('td')
                 .attr('class', 'day')
-                .filter(function(d) { return d != null; }).text(function(d) { return d.getDate() })
+                .text(function(d) { return d.getDate() })
                 .filter(function(d) { return isSameDay(d, baseDate); }).classed('today', true)
    </script>
 </body>
